@@ -5,7 +5,7 @@ const connectDB = async () => { // Creamos una función asíncrona para conectar
   await monogoose.connect(process.env.MONGO_URI);// Nos conectamos a la base de datos utilizando la URL de conexión que hemos definido en el archivo .env
   console.log('Conectado a MongoDB'); 
  } catch (error) {
-  console.error('Error al conectar a MongoDB:', error.module);
+  console.error('Error al conectar a MongoDB:', error.message);
  } 
 };
 module.exports = connectDB; 

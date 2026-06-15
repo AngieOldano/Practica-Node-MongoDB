@@ -26,6 +26,9 @@ const productoSchema = new mongoose.Schema({
     required: [true, 'La categoría es obligatoria'],
     trim: true
   }
+},{  
+  timestamps: true
+  
 });
 
 const Producto = mongoose.model('Producto', productoSchema);
