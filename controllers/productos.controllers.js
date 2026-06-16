@@ -57,10 +57,48 @@ const eliminarProducto = async (req, res) => {
   }
 };
 
+const agregarImagen = async (req, res) => {
+  try {    
+    const { id } = req.params; // el usuario envia el id del producto al que quiere agregar la imagen
+    const producto = await Producto.findById(id); // buscamos el producto por su id
+    if (!producto) {
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
+    producto.imagenes.push(req.body); // agregamos la imagen al array de imagenes del producto
+    await producto.save();
+    res.status(200).json({message: "Imagen agregada correctamente"});
+  } catch (error) {
+    res.status(500).json({ error: "Error al agregar la imagen", error: error.message });
+  }
+};
+
+
+const eliminarImagen = async (req, res) => {
+  try {    
+    const { id, imagenId } = req.params; // el usuario envia el id del producto y el id de la imagen que quiere eliminar
+    const producto = await Producto.findById(id); // buscamos el producto por su id
+    if (!producto) {
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
+    producto.imagenes = producto.imagenes.filter(imagen => imagen._id.toString() !== imagenId); // filtramos las imagenes del producto para quedarnos solo con las que no tienen el id de la imagen que queremos eliminar
+    await producto.save();
+    res.status(200).json({message: "Imagen eliminada correctamente"});
+  } catch (error) {
+    res.status(500).json({ error: "Error al eliminar la imagen", error: error.message });
+  }
+};
+
+
+
+
+
+
 module.exports = {
   obtenerProductos,
   obtenerProductoPorId,
   crearProducto,
   actualizarProducto,
-  eliminarProducto
+  eliminarProducto,
+  agregarImagen,
+  eliminarImagen
 };

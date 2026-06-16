@@ -111,8 +111,16 @@ const connectDB = async () => { // Creamos una función asíncrona para conectar
 PORT=3000
 MONGO_URI=mongodb://admin:admin1234@localhost:27017/tienda?authSource=admin
 ```
+## Incrustacion
+* La incrustacion es una tecnica que se utiliza para incluir un documento dentro de otro documento, es decir que un documento puede tener un campo que sea un documento o un array de documentos.
+* Para incustrar un documentro dentro de otro documento, simplemente definimos el campo como un objeto o un array de objetos en el esquema del modelo, por ejemplo:
+* Una ventaja es la simplicidad, ya que esto todo en un solo documento, no es necesario hacer consultas adicionales (como con join) para obtener los datos relacionados.
+* Una desventaja es que no se puede compartir el "subdocumento", se crea una entidad que depende toalmente de la entidad principal. Si necesito esa subentidad tengo que primero traerme la entidad principal y luego acceder a la subentidad, no puedo acceder directamente a la subentidad como si fuera una entidad independiente.
+
 
 ## Schemas y Modelos
+
+### Producto
 * Creo una carpeta llamada models y dentro de ella un archivo llamado Producto.js donde voy a definir el esquema y el modelo para los productos.
 ```js
 const mongoose = require('mongoose');
@@ -159,6 +167,35 @@ const productoSchema = new mongoose.Schema({
 const Producto = mongoose.model('Producto', productoSchema);
 module.exports = Producto;
 ```
+### Imagen
+* Como la imagen es una subentidad de producto, osea va ser un documento inscrustado dentro del documento producto, entonces no necesito crear un modelo para la imagen, simplemente defino el schema de la imagen como un objeto dentro del esquema del producto, quedando asi:
+```js
+const imagenSchema = new mongoose.Schema({
+  url: {
+    type: String,
+    required: [true, 'La URL de la imagen es obligatoria']
+  },
+  descripcion: {
+    type: String,
+    required: false, 
+    trim: true
+  }
+});
+```
+### Incrustacion para producto
+* Para incrustar el esquema de la imagen dentro del esquema del producto, simplemente definimos un campo llamado imagen que es un array de objetos con el esquema de la imagen, quedando asi:
+```js
+const productoSchema = new mongoose.Schema({
+  ...
+  imagen: [imagenSchema]
+},{
+  timestamps: true,
+  strict: true
+});
+```
+* Si quiero poder inscrustrar varias imagenes dentro de un producto, entonces defino el campo imagen como un array 
+* Si necesito reutilizar el esquema de la imagen en otras partes de la aplicacion, entonces puedo crear una carpeta schema y ahi definir el esquema de la imagen y exportarla para luego importarla en los modelos que necesitemos.
+
 
 ## Controladores
 * Creo una carpeta llamada controllers y dentro de ella un archivo llamado productos.controller.js para manejar la logica de las operaciones CRUD (Create, Read, Update, Delete) para los productos.
@@ -242,9 +279,42 @@ const eliminarProducto = async (req, res) => {
 ```
 * findByIdAndDelete() es un método de Mongoose que se utiliza para eliminar un documento por su ID. Recibe el ID del documento a eliminar y devuelve el documento eliminado si se encuentra, o null si no se encuentra.
 
+### Agregar una imagen a un producto
+```js
+const agregarImagen = async (req, res) => {
+    const { id } = req.params;
+  .....
+    producto.imagenes.push(req.body); // constante de producto que vive en memoria
+    await producto.save();
+  .....
+};
+```
+* Al atributo imagenes del producto le hago un push(porque es un array) del req.body que es el objeto con la url y la descripcion de la imagen que el usuario va a pasar por el raw body al hacer el post.
+
+### Eliminar una imagen de un producto
+```js 
+const eliminarImagen = async (req, res) => {
+  try {    
+    const { id, imagenId } = req.params;
+    .....
+    producto.imagenes = producto.imagenes.filter(imagen => imagen._id.toString() !== imagenId); // constante de producto que vive en memoria
+    await producto.save();
+    ...
+};
+```
+* El filter se usa pasandole una funcion que devuelve V o F, si devuelve V entonces el elemento se queda en el array, pero si devuelve F entonces el elemento se elimina del array.
+* Entonces si me quiero quedar con todas las imagenes excepto con la que quiero eliminar, le paso el id de la imagen que quiero eliminar y la comparo con el id de cada imagen del array, si el id de la imagen es diferente al id de la imagen que quiero eliminar, entonces se queda en el array, pero si el id de la imagen es igual al id de la imagen que quiero eliminar, entonces se elimina del array.
+* Filter crea un nuevo array, no modifica el array original, por eso asigno el resultado del filter al atributo imagenes del producto para que se actualice el array de imagenes del producto.
+
 ## Rutas
 * Creo una carpeta llamada routes y dentro de ella un archivo llamado productos.routes.js para manejar las operaciones CRUD (Create, Read, Update, Delete) para los productos.
-***NOTA: Esta parte es distinta igual a lo que se hizo con Sequelize***
+
+* Para definir endpoints para las imagenes lo hacemos dentro del mismo router de productos, quedando asi:
+```js
+router.post("/:id/imagenes", agregarImagen);
+router.delete("/:id/imagenes/:imagenId", eliminarImagen);
+```
+* Para el post pasamos el id del producto al que queremos agregar la imagen y para el delete pasamos el id del producto y el id de la imagen que queremos eliminar.
 
 
 ## Postman - MongoDB
@@ -275,6 +345,40 @@ const eliminarProducto = async (req, res) => {
 ```
 * Para eliminar un producto hacemos una solicitud DELETE a http://localhost:3000/api/productos/:id donde :id es el ID del producto que queremos eliminar, por ejemplo http://localhost:3000/productos/6a300bd9472e6326f3f8a295
 
+
+* Para agregar una imagen a un producto hacemos una solicitud POST a http://localhost:3000/api/productos/:id/imagenes donde :id es el ID del producto al que queremos agregar la imagen, por ejemplo http://localhost:3000/productos/6a300bd9472e6326f3f8a295/imagenes y en el body raw con el siguiente cuerpo en formato JSON ponemos la imagen que queremos agregar:
+```json
+{
+    "url":"https://www.google.com.ar/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+    "descripcion": "Logo de Google"
+}
+```
+![alt text](imagenes/image7.png)
+* Podemos tambien agrerar varias imagenes a un producto, y podemos hacerlo tambien al crear el producto, simplemente agregamos un array de imagenes en el body raw del post, quedando asi:
+```json
+{
+    "nombre":"Mouse",
+    "descripcion": "Mouse-con-USB",
+    "precio":150,
+    "stock": 20,
+    "categoria": "Informática",
+    "color": "Black",
+    "imagenes":[
+        {
+            "url":"https://www.google.com.ar/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+            "descripcion": "Logo de Google"
+        },
+        {
+            "url":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Logo_2013_Google.png/800px-Logo_2013_Google.png",
+            "descripcion": "Logo de Google 2"
+        }
+    ]
+}
+```
+
+* Para eliminar una imagen de un producto hacemos una solicitud DELETE a http://localhost:3000/api/productos/:id/imagenes/:imagenId donde :id es el ID del producto al que queremos eliminar la imagen y :imagenId es el ID de la imagen que queremos eliminar, por ejemplo http://localhost:3000/productos/6a300bd9472e6326f3f8a295/imagenes/6a300bd9472e6326f3f8a296
+![alt text](imagenes/image10.png)
+
 ### MongoDB
 * Para ver la bdd en mongo-express entramos a http://localhost:8081/ (8081 es el puerto que definimos en el docker-compose.yml para mongo-express) y nos conectamos a la base de datos tienda
 
@@ -293,3 +397,14 @@ const eliminarProducto = async (req, res) => {
 * Si hacemos un delete de un producto desde la Postman, el producto se elimina de la colección productos en mongoDB y ya no lo vemos en mongo-express ni en la API.
 ![alt text](imagenes/image6.png)
 ![alt text](imagenes/image5.png)
+
+
+* Si hacemos un post de una imagen a un producto desde la Postman, la imagen se agrega al array de imagenes del producto en mongoDB y ya la vemos en mongo-express y en la API.
+![alt text](imagenes/image7.png)
+![alt text](imagenes/image8.png)
+
+
+* Si hacemos un delete de una imagen de un producto desde la Postman, la imagen se elimina del array de imagenes del producto en mongoDB y ya no la vemos en mongo-express ni en la API.
+![alt text](imagenes/image9.png)
+![alt text](imagenes/image10.png)
+![alt text](imagenes/image11.png)

@@ -1,5 +1,17 @@
 const mongoose = require('mongoose');
 
+const imagenSchema = new mongoose.Schema({
+  url: {
+    type: String,
+    required: [true, 'La URL de la imagen es obligatoria'] //obligatorio
+  },
+  descripcion: {
+    type: String,
+    required: false, //opcional
+    trim: true
+  }
+});
+
 const productoSchema = new mongoose.Schema({
   nombre: {
     type: String,
@@ -25,11 +37,13 @@ const productoSchema = new mongoose.Schema({
     type: String,
     required: [true, 'La categoría es obligatoria'],
     trim: true
-  }
+  },
+  imagenes: [imagenSchema] // Incrustamos el esquema de la imagen dentro del esquema del producto
 },{  
   timestamps: true
   
 });
+
 
 const Producto = mongoose.model('Producto', productoSchema);
 module.exports = Producto;
