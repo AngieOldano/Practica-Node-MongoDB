@@ -8,7 +8,9 @@ const {
   actualizarProducto,
   eliminarProducto,
   agregarImagen,
-  eliminarImagen
+  eliminarImagen,
+  agregarEtiqueta,
+  eliminarEtiqueta
 } = require("../controllers/productos.controllers");
 
 router.get("/", obtenerProductos);
@@ -19,5 +21,8 @@ router.delete("/:id", eliminarProducto);
 
 router.post("/:id/imagenes", agregarImagen);
 router.delete("/:id/imagenes/:imagenId", eliminarImagen);
+
+router.post("/:id/etiquetas/:etiquetaId", agregarEtiqueta);
+router.delete("/:id/etiquetas/:etiquetaId", eliminarEtiqueta);
 
 module.exports = router;

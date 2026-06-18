@@ -33,11 +33,15 @@ const productoSchema = new mongoose.Schema({
     required: [true, 'El stock es obligatorio'],
     min: [0, 'El stock no puede ser negativo']
   },
-  categoria: {
-    type: String,
-    required: [true, 'La categoría es obligatoria'],
-    trim: true
+  categoria: { // relacion 1 a N
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Categoria',
+    required: [true, 'La categoría es obligatoria']
   },
+  etiquetas: [{ // relacion N a N
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Etiqueta'
+  }],
   imagenes: [imagenSchema] // Incrustamos el esquema de la imagen dentro del esquema del producto
 },{  
   timestamps: true
